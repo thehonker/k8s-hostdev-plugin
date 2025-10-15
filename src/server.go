@@ -115,11 +115,8 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 	}
 	devCfg := DevConfig{}
 	s := strings.Split(dev, ":")
-	if len(s) != 2 {
-		return nil, fmt.Errorf("ParseDevConfig failed for: %s. Must have 1 [:], for example, /dev/mem:rwm", dev)
-	}
-	devCfg.DevName = s[0]
-	devCfg.Permissions = s[1]
+	devCfg.DevName = strings.Join(s[:len(s)-1], ":")
+	devCfg.Permissions = s[len(s)-1]
 
 	fileInfo, err := os.Stat(devCfg.DevName)
 	if err != nil {
