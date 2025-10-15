@@ -13,6 +13,8 @@ import (
 )
 
 func main() {
+	log.SetReportCaller(true)
+
 	hostDevPluginConfig, err := loadConfig()
 
 	if err != nil {

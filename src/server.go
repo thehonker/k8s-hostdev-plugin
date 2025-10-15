@@ -67,7 +67,7 @@ type HostDevicePluginManager struct {
 func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginManager, error) {
 	mgr := HostDevicePluginManager{
 		Config:  cfg,
-		Plugins: make([]*HostDevicePlugin),
+		Plugins: make([]*HostDevicePlugin, 0),
 	}
 
 	for _, devCfg := range cfg.DevList {
@@ -77,7 +77,7 @@ func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginM
 		}
 		mgr.Plugins = append(mgr.Plugins, plugin)
 	}
-	return mgr, nil
+	return &mgr, nil
 }
 
 func (mgr *HostDevicePluginManager) Stop() {
@@ -111,7 +111,7 @@ var flagDevList = flag.String("devs", "",
 
 func ParseDevConfig(dev string) (*DevConfig, error) {
 	if dev == "" {
-		return nil, fmt.Errorf("Must have arg --devs , for example, --devs /dev/mem:rwm")
+		return nil, fmt.Errorf("must have arg --devs , for example, --devs /dev/mem:rwm")
 	}
 	devCfg := DevConfig{}
 	s := strings.Split(dev, ":")
@@ -156,13 +156,13 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 
 // for unit test
 func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
-	flag.Parse(arguments)
+	flag.Parse()
 
 	devs := strings.Split(*flagDevList, ",")
 	log.Println("Devices:")
 	log.Println(strings.Join(devs, ", "))
 	cfg := HostDevicePluginConfig{
-		DevList: []DevConfig,
+		DevList: make([]*DevConfig, 0),
 	}
 	for _, dev := range devs {
 		devCfg, err := ParseDevConfig(dev)
@@ -172,7 +172,7 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 			cfg.DevList = append(cfg.DevList, devCfg)
 		}
 	}
-	return cfg, nil
+	return &cfg, nil
 }
 
 func loadConfig() (*HostDevicePluginConfig, error) {
@@ -181,7 +181,7 @@ func loadConfig() (*HostDevicePluginConfig, error) {
 
 func NomalizeDevName(devName string) (string, error) {
 	if devName[0] != '/' {
-		return "", fmt.Errorf("Invalid dev name, must start with // ")
+		return "", fmt.Errorf("invalid dev name, must start with // ")
 	}
 	return strings.Replace(devName[1:], "/", "_", -1), nil
 }
@@ -193,12 +193,12 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := make([]*pluginapi.Device)
+	devs := make([]*pluginapi.Device, 0)
 	for i := 0; i < NumDevices; i++ {
-		devs = append(devs, pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
+		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
 
-	return HostDevicePlugin{
+	return &HostDevicePlugin{
 		DevName:        devCfg.DevName,
 		Permissions:    devCfg.Permissions,
 		NormalizedName: normalizedName,
@@ -220,7 +220,7 @@ func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error
 	)
 
 	if err != nil {
-		fmt.Errorf("dial error: %v", err)
+		log.Errorf("dial error: %v", err)
 		return nil, err
 	}
 
@@ -306,7 +306,6 @@ func (plugin *HostDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.Dev
 			s.Send(&pluginapi.ListAndWatchResponse{Devices: plugin.Dev})
 		}
 	}
-	return nil
 }
 
 // Allocate which return list of devices.
