@@ -180,7 +180,13 @@ func NomalizeDevName(devName string) (string, error) {
 	if devName[0] != '/' {
 		return "", fmt.Errorf("invalid dev name, must start with // ")
 	}
-	return strings.Replace(devName[1:], "/", "_", -1), nil
+
+	replacer := strings.NewReplacer(
+		"/", "_",
+		":", "_",
+	)
+
+	return replacer.Replace(devName[1:]), nil
 }
 
 // NewHostDevicePlugin returns an initialized HostDevicePlugin
