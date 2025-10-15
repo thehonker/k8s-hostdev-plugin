@@ -112,8 +112,6 @@ func (mgr *HostDevicePluginManager) RegisterToKubelet() error {
 var flagDevList = flag.String("devs", "",
 	"The list of devices seperated by comma. For example: /dev/mem:rwm,/dev/ecryptfs:r")
 
-var flagDevQuota = flag.Int("quota", 100, "The quota of devices")
-
 func ParseDevConfig(dev string) (*DevConfig, error) {
 	if dev == "" {
 		return nil, fmt.Errorf("Must have arg --devs , for example, --devs /dev/mem:rwm")
@@ -160,12 +158,12 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 
 // for unit test
 func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
-	flag.CommandLine.Parse(arguments)
+	flag.Parse(arguments)
 
-	cfg := HostDevicePluginConfig{
-		DevList: make([]*DevConfig),
-	}
 	devs := strings.Split(*flagDevList, ",")
+	cfg := HostDevicePluginConfig{
+		DevList: []*DevConfig,
+	}
 	for _, dev := range devs {
 		devCfg, err := ParseDevConfig(dev)
 		if err != nil {
@@ -195,8 +193,8 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := make([]*pluginapi.Device, NumDevices, *flagDevQuota)
-	for i := 0; i < *flagDevQuota; i++ {
+	devs := make([]*pluginapi.Device, NumDevices, NumDevices)
+	for i := 0; i < NumDevices; i++ {
 		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
 
