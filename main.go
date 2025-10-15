@@ -38,6 +38,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	pluginManager.RegisterToKubelet()
+
 	if err := pluginManager.Start(); err != nil {
 		log.Fatal(err)
 	}

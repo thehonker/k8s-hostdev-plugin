@@ -77,7 +77,7 @@ func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginM
 		}
 		mgr.Plugins = append(mgr.Plugins, plugin)
 	}
-	return &mgr, nil
+	return mgr, nil
 }
 
 func (mgr *HostDevicePluginManager) Stop() {
@@ -162,6 +162,8 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 	flag.Parse(arguments)
 
 	devs := strings.Split(*flagDevList, ",")
+	log.Debugf("Devices:")
+	log.Debugf(strings.Join(devs, ", "))
 	cfg := HostDevicePluginConfig{
 		DevList: []DevConfig,
 	}
@@ -194,7 +196,7 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := make([]*pluginapi.Device, 0, NumDevices)
+	devs := make([]*pluginapi.Device)
 	for i := 0; i < NumDevices; i++ {
 		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
