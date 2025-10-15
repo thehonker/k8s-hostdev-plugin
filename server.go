@@ -67,7 +67,7 @@ type HostDevicePluginManager struct {
 func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginManager, error) {
 	mgr := HostDevicePluginManager{
 		Config:  cfg,
-		Plugins: make([]*HostDevicePlugin, 0, 8),
+		Plugins: make([]*HostDevicePlugin, 0, NumDevices),
 	}
 
 	for _, devCfg := range cfg.DevList {
@@ -129,6 +129,7 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 		return nil, fmt.Errorf("ParseDevConfig failed for: %s. stat of %s failed: %v",
 			dev, devCfg.DevName, err)
 	}
+
 	if (fileInfo.Mode() & os.ModeDevice) == 0 {
 		return nil, fmt.Errorf("ParseDevConfig failed for: %s. %s is not a device file",
 			dev, devCfg.DevName)
@@ -162,7 +163,7 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 
 	devs := strings.Split(*flagDevList, ",")
 	cfg := HostDevicePluginConfig{
-		DevList: []*DevConfig,
+		DevList: []DevConfig,
 	}
 	for _, dev := range devs {
 		devCfg, err := ParseDevConfig(dev)
@@ -170,9 +171,9 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 			return nil, err
 		} else {
 			cfg.DevList = append(cfg.DevList, devCfg)
-			return &cfg, nil
 		}
 	}
+	return &cfg, nil
 }
 
 func loadConfig() (*HostDevicePluginConfig, error) {
@@ -193,7 +194,7 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := make([]*pluginapi.Device, NumDevices, NumDevices)
+	devs := make([]*pluginapi.Device, 0, NumDevices)
 	for i := 0; i < NumDevices; i++ {
 		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
