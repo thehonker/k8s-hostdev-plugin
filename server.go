@@ -96,11 +96,8 @@ func (mgr *HostDevicePluginManager) Start() error {
 	return nil
 }
 
-func (mgr *HostDevicePluginManager) RegisterToKubelet() error {
+func (mgr *HostDevicePluginManager) RegisterPluginToKubelet() error {
 	for _, plugin := range mgr.Plugins {
-		if plugin.IsRegistered {
-			continue
-		}
 		err := plugin.RegisterToKubelet()
 		if err != nil {
 			return err
@@ -175,7 +172,7 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 			cfg.DevList = append(cfg.DevList, devCfg)
 		}
 	}
-	return &cfg, nil
+	return cfg, nil
 }
 
 func loadConfig() (*HostDevicePluginConfig, error) {
@@ -198,10 +195,10 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 
 	devs := make([]*pluginapi.Device)
 	for i := 0; i < NumDevices; i++ {
-		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
+		devs = append(devs, pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
 
-	return &HostDevicePlugin{
+	return HostDevicePlugin{
 		DevName:        devCfg.DevName,
 		Permissions:    devCfg.Permissions,
 		NormalizedName: normalizedName,
@@ -223,7 +220,7 @@ func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error
 	)
 
 	if err != nil {
-		fmt.Errorf("dial error: %v\n", err)
+		fmt.Errorf("dial error: %v", err)
 		return nil, err
 	}
 
@@ -271,7 +268,7 @@ func (plugin *HostDevicePlugin) Stop() error {
 func (plugin *HostDevicePlugin) RegisterToKubelet() error {
 	conn, err := dial(pluginapi.KubeletSocket, 5*time.Second)
 	if err != nil {
-		log.Errorf("fail to dial %s: %v\n", pluginapi.KubeletSocket, err)
+		log.Errorf("fail to dial %s: %v", pluginapi.KubeletSocket, err)
 		return err
 	}
 	defer conn.Close()
@@ -286,11 +283,11 @@ func (plugin *HostDevicePlugin) RegisterToKubelet() error {
 	_, err = client.Register(context.Background(), reqt)
 	if err != nil {
 		plugin.IsRegistered = false
-		log.Errorf(" Register %s error: %v\n", plugin.DevName, err)
+		log.Errorf("Register %s error: %v", plugin.DevName, err)
 		return err
 	}
 	plugin.IsRegistered = true
-	log.Infof(" Register %s success\n%s\n", plugin.DevName, spew.Sprint(plugin))
+	log.Infof("Register %s success %s", plugin.DevName, spew.Sprint(plugin))
 	return nil
 }
 

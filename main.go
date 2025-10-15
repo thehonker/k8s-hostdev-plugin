@@ -38,7 +38,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	pluginManager.RegisterToKubelet()
+	pluginManager.RegisterPluginToKubelet()
 
 	if err := pluginManager.Start(); err != nil {
 		log.Fatal(err)
@@ -50,12 +50,12 @@ L:
 	for {
 		select {
 		case <-ticker.C:
-			pluginManager.RegisterToKubelet()
+			pluginManager.RegisterPluginToKubelet()
 
 		case event := <-watcher.Events:
 			if event.Name == pluginapi.KubeletSocket && event.Op&fsnotify.Create == fsnotify.Create {
 				log.Printf("inotify: %s created, restarting.", pluginapi.KubeletSocket)
-				pluginManager.RegisterToKubelet()
+				pluginManager.RegisterPluginToKubelet()
 			}
 
 		case err := <-watcher.Errors:
