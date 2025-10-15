@@ -20,7 +20,7 @@ import (
 const (
 	ResourceNamePrefix = "hostdev.k8s.io/"
 	serverSock         = pluginapi.DevicePluginPath + "hostdev.sock"
-	NumDevices         = 30
+	NumDevices         = 64
 )
 
 func init() {
@@ -204,7 +204,7 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := make([]*pluginapi.Device, 0, *flagDevQuota)
+	devs := make([]*pluginapi.Device, NumDevices, *flagDevQuota)
 	for i := 0; i < *flagDevQuota; i++ {
 		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
