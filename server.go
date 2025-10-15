@@ -160,28 +160,19 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 
 // for unit test
 func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
-	// Parse command-line arguments
-	//flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
+	flag.CommandLine.Parse(arguments)
 
-	ticker := time.NewTicker(5 * time.Second)
-	for {
-		<-ticker.C
-		flag.CommandLine.Parse(arguments)
-
-		cfg := HostDevicePluginConfig{
-			DevList: make([]*DevConfig, 0, 2),
-		}
-		devs := strings.Split(*flagDevList, ",")
-		for _, dev := range devs {
-			devCfg, err := ParseDevConfig(dev)
-			if err != nil {
-				// return nil, err
-				continue
-			} else {
-				cfg.DevList = append(cfg.DevList, devCfg)
-				return &cfg, nil
-				// break
-			}
+	cfg := HostDevicePluginConfig{
+		DevList: make([]*DevConfig),
+	}
+	devs := strings.Split(*flagDevList, ",")
+	for _, dev := range devs {
+		devCfg, err := ParseDevConfig(dev)
+		if err != nil {
+			return nil, err
+		} else {
+			cfg.DevList = append(cfg.DevList, devCfg)
+			return &cfg, nil
 		}
 	}
 }
