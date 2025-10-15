@@ -20,6 +20,7 @@ import (
 const (
 	ResourceNamePrefix = "hostdev.k8s.io/"
 	serverSock         = pluginapi.DevicePluginPath + "hostdev.sock"
+	NumDevices         = 30
 )
 
 func init() {
@@ -111,6 +112,8 @@ func (mgr *HostDevicePluginManager) RegisterToKubelet() error {
 var flagDevList = flag.String("devs", "",
 	"The list of devices seperated by comma. For example: /dev/mem:rwm,/dev/ecryptfs:r")
 
+var flagDevQuota = flag.Int("quota", 100, "The quota of devices")
+
 func ParseDevConfig(dev string) (*DevConfig, error) {
 	if dev == "" {
 		return nil, fmt.Errorf("Must have arg --devs , for example, --devs /dev/mem:rwm")
@@ -124,7 +127,7 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 	devCfg.Permissions = s[1]
 
 	fileInfo, err := os.Stat(devCfg.DevName)
-  	if err != nil {
+	if err != nil {
 		return nil, fmt.Errorf("ParseDevConfig failed for: %s. stat of %s failed: %v",
 			dev, devCfg.DevName, err)
 	}
@@ -178,7 +181,7 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 				cfg.DevList = append(cfg.DevList, devCfg)
 				return &cfg, nil
 				// break
-			}				
+			}
 		}
 	}
 }
@@ -201,8 +204,9 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := []*pluginapi.Device{
-		&pluginapi.Device{ID: devCfg.DevName, Health: pluginapi.Healthy},
+	devs := make([]*pluginapi.Device, 0, *flagDevQuota)
+	for i := 0; i < *flagDevQuota; i++ {
+		devs = append(devs, &pluginapi.Device{ID: fmt.Sprintf("%s_%d", devCfg.DevName, i), Health: pluginapi.Healthy})
 	}
 
 	return &HostDevicePlugin{
