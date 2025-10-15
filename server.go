@@ -5,20 +5,21 @@ import (
 	"path"
 	"time"
 
-	log "github.com/Sirupsen/logrus"
+	"flag"
+	"fmt"
+	"os"
+	"strings"
+
+	"github.com/davecgh/go-spew/spew"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pluginapi "k8s.io/kubernetes/pkg/kubelet/apis/deviceplugin/v1beta1"
-	"fmt"
-	"github.com/davecgh/go-spew/spew"
-	"flag"
-	"strings"
-	"os"
+	pluginapi "k8s.io/kubelet/pkg/apis/deviceplugin/v1beta1"
 )
 
 const (
 	ResourceNamePrefix = "hostdev.k8s.io/"
-	serverSock          = pluginapi.DevicePluginPath + "hostdev.sock"
+	serverSock         = pluginapi.DevicePluginPath + "hostdev.sock"
 )
 
 func init() {
@@ -26,6 +27,7 @@ func init() {
 	spew.Config.DisableCapacities = true
 	spew.Config.MaxDepth = 2
 }
+
 type DevConfig struct {
 	DevName string
 	// must be "rwm" or it's subsets
@@ -48,22 +50,22 @@ type HostDevicePlugin struct {
 	ResourceName string
 	// DevicePluginPath ("/var/lib/kubelet/device-plugins/") + dev_mem.sock
 	UnixSockPath string
-	UnixSock net.Listener
-	GrpcServer *grpc.Server
+	UnixSock     net.Listener
+	GrpcServer   *grpc.Server
 	// pre-setup Device
-	Dev []*pluginapi.Device
+	Dev          []*pluginapi.Device
 	IsRigistered bool
-	StopChan   chan interface{}
+	StopChan     chan interface{}
 }
 
 type HostDevicePluginManager struct {
-	Config *HostDevicePluginConfig
+	Config  *HostDevicePluginConfig
 	Plugins []*HostDevicePlugin
 }
 
 func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginManager, error) {
 	mgr := HostDevicePluginManager{
-		Config: cfg,
+		Config:  cfg,
 		Plugins: make([]*HostDevicePlugin, 0, 8),
 	}
 
@@ -82,7 +84,6 @@ func (mgr *HostDevicePluginManager) Stop() {
 		plugin.Stop()
 	}
 }
-
 
 func (mgr *HostDevicePluginManager) Start() error {
 	for _, plugin := range mgr.Plugins {
@@ -107,11 +108,10 @@ func (mgr *HostDevicePluginManager) RegisterToKubelet() error {
 	return nil
 }
 
-
 var flagDevList = flag.String("devs", "",
 	"The list of devices seperated by comma. For example: /dev/mem:rwm,/dev/ecryptfs:r")
 
-func ParseDevConfig(dev string)(*DevConfig, error) {
+func ParseDevConfig(dev string) (*DevConfig, error) {
 	if dev == "" {
 		return nil, fmt.Errorf("Must have arg --devs , for example, --devs /dev/mem:rwm")
 	}
@@ -124,7 +124,7 @@ func ParseDevConfig(dev string)(*DevConfig, error) {
 	devCfg.Permissions = s[1]
 
 	fileInfo, err := os.Stat(devCfg.DevName)
-	if err != nil {
+  	if err != nil {
 		return nil, fmt.Errorf("ParseDevConfig failed for: %s. stat of %s failed: %v",
 			dev, devCfg.DevName, err)
 	}
@@ -145,7 +145,6 @@ func ParseDevConfig(dev string)(*DevConfig, error) {
 		}
 	}
 
-
 	for _, c := range devCfg.Permissions {
 		if !strings.Contains("rwm", string(c)) {
 			return nil, fmt.Errorf("ParseDevConfig failed for: %s. Invalid permission string: %s. Must be subset of rwm",
@@ -161,28 +160,34 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 	// Parse command-line arguments
 	//flag.CommandLine = flag.NewFlagSet(os.Args[0], flag.ExitOnError)
 
-	flag.CommandLine.Parse(arguments)
+	ticker := time.NewTicker(5 * time.Second)
+	for {
+		<-ticker.C
+		flag.CommandLine.Parse(arguments)
 
-	cfg := HostDevicePluginConfig{
-		DevList: make([]*DevConfig, 0, 2),
-	}
-	devs := strings.Split(*flagDevList, ",")
-	for _, dev := range devs {
-		devCfg, err := ParseDevConfig(dev)
-		if err != nil {
-			return nil, err
+		cfg := HostDevicePluginConfig{
+			DevList: make([]*DevConfig, 0, 2),
 		}
-		cfg.DevList = append(cfg.DevList, devCfg)
+		devs := strings.Split(*flagDevList, ",")
+		for _, dev := range devs {
+			devCfg, err := ParseDevConfig(dev)
+			if err != nil {
+				// return nil, err
+				continue
+			} else {
+				cfg.DevList = append(cfg.DevList, devCfg)
+				return &cfg, nil
+				// break
+			}				
+		}
 	}
-
-	return &cfg, nil
 }
 
 func loadConfig() (*HostDevicePluginConfig, error) {
 	return LoadConfigImpl(os.Args[1:])
 }
 
-func NomalizeDevName(devName string) (string,error) {
+func NomalizeDevName(devName string) (string, error) {
 	if devName[0] != '/' {
 		return "", fmt.Errorf("Invalid dev name, must start with // ")
 	}
@@ -196,19 +201,19 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		return nil, err
 	}
 
-	devs := []*pluginapi.Device {
+	devs := []*pluginapi.Device{
 		&pluginapi.Device{ID: devCfg.DevName, Health: pluginapi.Healthy},
 	}
 
 	return &HostDevicePlugin{
-		DevName: 		devCfg.DevName,
+		DevName:        devCfg.DevName,
 		Permissions:    devCfg.Permissions,
 		NormalizedName: normalizedName,
 		ResourceName:   ResourceNamePrefix + normalizedName,
 		UnixSockPath:   pluginapi.DevicePluginPath + normalizedName,
-		Dev:			devs,
-		StopChan: 		make(chan interface{}),
-		IsRigistered: false,
+		Dev:            devs,
+		StopChan:       make(chan interface{}),
+		IsRigistered:   false,
 	}, nil
 }
 
@@ -311,7 +316,6 @@ func (plugin *HostDevicePlugin) ListAndWatch(e *pluginapi.Empty, s pluginapi.Dev
 	return nil
 }
 
-
 // Allocate which return list of devices.
 func (plugin *HostDevicePlugin) Allocate(ctx context.Context, r *pluginapi.AllocateRequest) (*pluginapi.AllocateResponse, error) {
 	//spew.Printf("Context: %#v\n", ctx)
@@ -319,20 +323,20 @@ func (plugin *HostDevicePlugin) Allocate(ctx context.Context, r *pluginapi.Alloc
 
 	response := pluginapi.AllocateResponse{}
 
-	devSpec := pluginapi.DeviceSpec {
-		HostPath: plugin.DevName,
+	devSpec := pluginapi.DeviceSpec{
+		HostPath:      plugin.DevName,
 		ContainerPath: plugin.DevName,
-		Permissions: plugin.Permissions,
+		Permissions:   plugin.Permissions,
 	}
 
-	//log.Debugf("Request IDs: %v", r)
+	log.Debugf("Request IDs: %v", r)
 	var devicesList []*pluginapi.ContainerAllocateResponse
 
 	devicesList = append(devicesList, &pluginapi.ContainerAllocateResponse{
-		Envs: make(map[string]string),
+		Envs:        make(map[string]string),
 		Annotations: make(map[string]string),
-		Devices: []*pluginapi.DeviceSpec{&devSpec},
-		Mounts: nil,
+		Devices:     []*pluginapi.DeviceSpec{&devSpec},
+		Mounts:      nil,
 	})
 
 	response.ContainerResponses = devicesList
@@ -349,4 +353,3 @@ func (plugin *HostDevicePlugin) GetDevicePluginOptions(context.Context, *plugina
 func (plugin *HostDevicePlugin) PreStartContainer(context.Context, *pluginapi.PreStartContainerRequest) (*pluginapi.PreStartContainerResponse, error) {
 	return &pluginapi.PreStartContainerResponse{}, nil
 }
-
