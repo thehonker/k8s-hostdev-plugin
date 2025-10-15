@@ -15,7 +15,7 @@ spec:
       hostNetwork: true
       containers:
       - name: hostdev
-        image: ccr.ccs.tencentyun.com/paas/hostdev:latest
+        image: ghcr.io/thehonker/k8s-hostdev-plugin:latest
         args: ["--devs", "/dev/mem:r,/dev/fuse:rwm,/dev/kfd:rwm,/dev/dri:rmw"]
         securityContext:
           privileged: true
