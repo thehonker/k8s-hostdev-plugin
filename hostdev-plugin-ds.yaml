@@ -1,3 +1,4 @@
+---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
@@ -12,13 +13,18 @@ spec:
       labels:
         name: hostdev-device-plugin-ds
     spec:
+      securityContext:
+        privileged: true
+        seccompProfile:
+          type: Unconfined
       hostNetwork: true
+      imagePullPolicy: Always
       containers:
       - name: hostdev
         image: ghcr.io/thehonker/k8s-hostdev-plugin:latest
-        args: ["--devs", "/dev/mem:r,/dev/fuse:rwm,/dev/kfd:rwm,/dev/dri:rmw"]
-        securityContext:
-          privileged: true
+        # passthrough an amd gpu at 0000:05:00.0
+        # args: ["--devs", "/dev/mem:r,/dev/fuse:rwm,/dev/kfd:rwm,/dev/dri/by-path/pci-0000:05:00.0-card:rwm,/dev/dri/by-path/pci-0000:05:00.0-render:rwm"]
+        args: ["--devs", "/dev/mem:r,/dev/fuse:rwm"]
         volumeMounts:
         - name: device-plugin
           mountPath: /var/lib/kubelet/device-plugins
