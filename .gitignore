@@ -1,2 +1,1 @@
-.idea
-k8s-hostdev-plugin
+src/k8s-hostdev-plugin
