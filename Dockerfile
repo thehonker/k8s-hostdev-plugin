@@ -1,13 +1,10 @@
-FROM docker.io/alpine:3 AS builder
+FROM docker.io/golang:1.25-alpine AS builder
 
 RUN set -exu \
  && apk update \
  && apk add \
   --no-cache \
-  git \
-  make \
-  musl-dev \
-  go
+  make
 
 RUN set -exu \
   && make bin

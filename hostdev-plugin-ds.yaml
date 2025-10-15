@@ -1,24 +1,22 @@
-apiVersion: extensions/v1beta1
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   name: hostdev-device-plugin
   namespace: kube-system
 spec:
+  selector:
+    matchLabels:
+      name: hostdev-device-plugin-ds
   template:
     metadata:
-      annotations:
-        scheduler.alpha.kubernetes.io/critical-pod: ""
       labels:
         name: hostdev-device-plugin-ds
     spec:
-      tolerations:
-      - key: CriticalAddonsOnly
-        operator: Exists
       hostNetwork: true
       containers:
       - name: hostdev
         image: ccr.ccs.tencentyun.com/paas/hostdev:latest
-        args: ["--devs", "/dev/mem:r"]
+        args: ["--devs", "/dev/mem:r,/dev/fuse:rwm,/dev/kfd:rwm,/dev/dri:rmw"]
         securityContext:
           privileged: true
         volumeMounts:
