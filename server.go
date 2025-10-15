@@ -55,7 +55,7 @@ type HostDevicePlugin struct {
 	GrpcServer   *grpc.Server
 	// pre-setup Device
 	Dev          []*pluginapi.Device
-	IsRigistered bool
+	IsRegistered bool
 	StopChan     chan interface{}
 }
 
@@ -67,7 +67,7 @@ type HostDevicePluginManager struct {
 func NewHostDevicePluginManager(cfg *HostDevicePluginConfig) (*HostDevicePluginManager, error) {
 	mgr := HostDevicePluginManager{
 		Config:  cfg,
-		Plugins: make([]*HostDevicePlugin, 0, NumDevices),
+		Plugins: make([]*HostDevicePlugin),
 	}
 
 	for _, devCfg := range cfg.DevList {
@@ -98,7 +98,7 @@ func (mgr *HostDevicePluginManager) Start() error {
 
 func (mgr *HostDevicePluginManager) RegisterToKubelet() error {
 	for _, plugin := range mgr.Plugins {
-		if plugin.IsRigistered {
+		if plugin.IsRegistered {
 			continue
 		}
 		err := plugin.RegisterToKubelet()
@@ -162,8 +162,8 @@ func LoadConfigImpl(arguments []string) (*HostDevicePluginConfig, error) {
 	flag.Parse(arguments)
 
 	devs := strings.Split(*flagDevList, ",")
-	log.Debugf("Devices:")
-	log.Debugf(strings.Join(devs, ", "))
+	log.Println("Devices:")
+	log.Println(strings.Join(devs, ", "))
 	cfg := HostDevicePluginConfig{
 		DevList: []DevConfig,
 	}
@@ -209,7 +209,7 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		UnixSockPath:   pluginapi.DevicePluginPath + normalizedName,
 		Dev:            devs,
 		StopChan:       make(chan interface{}),
-		IsRigistered:   false,
+		IsRegistered:   false,
 	}, nil
 }
 
@@ -285,11 +285,11 @@ func (plugin *HostDevicePlugin) RegisterToKubelet() error {
 
 	_, err = client.Register(context.Background(), reqt)
 	if err != nil {
-		plugin.IsRigistered = false
+		plugin.IsRegistered = false
 		log.Errorf(" Register %s error: %v\n", plugin.DevName, err)
 		return err
 	}
-	plugin.IsRigistered = true
+	plugin.IsRegistered = true
 	log.Infof(" Register %s success\n%s\n", plugin.DevName, spew.Sprint(plugin))
 	return nil
 }
