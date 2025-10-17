@@ -118,15 +118,10 @@ func ParseDevConfig(dev string) (*DevConfig, error) {
 	devCfg.DevName = strings.Join(s[:len(s)-1], ":")
 	devCfg.Permissions = s[len(s)-1]
 
-	fileInfo, err := os.Stat(devCfg.DevName)
+	_, err := os.Stat(devCfg.DevName)
 	if err != nil {
 		return nil, fmt.Errorf("ParseDevConfig failed for: %s. stat of %s failed: %v",
 			dev, devCfg.DevName, err)
-	}
-
-	if (fileInfo.Mode() & os.ModeDevice) == 0 {
-		return nil, fmt.Errorf("ParseDevConfig failed for: %s. %s is not a device file",
-			dev, devCfg.DevName)
 	}
 
 	if len(devCfg.Permissions) > 3 || len(devCfg.Permissions) == 0 {
