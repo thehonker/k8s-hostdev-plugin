@@ -227,9 +227,6 @@ func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error
 
 // Start starts the gRPC server of the device plugin
 func (plugin *HostDevicePlugin) Start() error {
-	if err := os.Remove(plugin.UnixSockPath); err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to remove existing socket file: %v", err)
-	}
 	sock, err := net.Listen("unix", plugin.UnixSockPath)
 	if err != nil {
 		return err
