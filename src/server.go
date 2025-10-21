@@ -201,7 +201,7 @@ func NewHostDevicePlugin(devCfg *DevConfig) (*HostDevicePlugin, error) {
 		Permissions:    devCfg.Permissions,
 		NormalizedName: normalizedName,
 		ResourceName:   ResourceNamePrefix + normalizedName,
-		UnixSockPath:   pluginapi.DevicePluginPath + normalizedName,
+		UnixSockPath:   pluginapi.DevicePluginPath + normalizedName + ".sock",
 		Dev:            devs,
 		StopChan:       make(chan interface{}),
 		IsRegistered:   false,
@@ -227,7 +227,24 @@ func dial(unixSocketPath string, timeout time.Duration) (*grpc.ClientConn, error
 
 // Start starts the gRPC server of the device plugin
 func (plugin *HostDevicePlugin) Start() error {
-	sock, err := net.Listen("unix", plugin.UnixSockPath)
+	var sock net.Listener
+	var err error
+
+	for attempts := 0; attempts < 5; attempts++ {
+		sock, err = net.Listen("unix", plugin.UnixSockPath)
+		if err == nil {
+			break
+		}
+		if strings.Contains(err.Error(), "address already in use") {
+			log.Warnf("Address %s already in use, attempting to remove existing socket file (%d/5)...", plugin.UnixSockPath, attempts+1)
+			if err := os.Remove(plugin.UnixSockPath); err != nil && !os.IsNotExist(err) {
+				return fmt.Errorf("failed to remove existing socket file: %v", err)
+			}
+			time.Sleep(5 * time.Second)
+			continue
+		}
+		return err
+	}
 	if err != nil {
 		return err
 	}
