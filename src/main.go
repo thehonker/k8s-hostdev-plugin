@@ -45,11 +45,20 @@ L:
 	for {
 		select {
 		case <-ticker.C:
-			pluginManager.RegisterPluginToKubelet()
+			continue
 		case event := <-watcher.Events:
 			if event.Name == pluginapi.KubeletSocket && event.Op&fsnotify.Create == fsnotify.Create {
 				log.Printf("inotify: %s created, restarting.", pluginapi.KubeletSocket)
-				pluginManager.RegisterPluginToKubelet()
+				pluginManager, err := NewHostDevicePluginManager(hostDevPluginConfig)
+				if err != nil {
+					log.Fatal(err)
+				}
+				if err := pluginManager.Start(); err != nil {
+					log.Fatal(err)
+				}
+				if err := pluginManager.RegisterPluginToKubelet(); err != nil {
+					log.Fatal(err)
+				}
 			}
 		case err := <-watcher.Errors:
 			log.Printf("inotify: %s", err)
