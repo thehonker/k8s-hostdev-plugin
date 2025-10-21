@@ -24,10 +24,10 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
-	pluginManager.RegisterPluginToKubelet()
-
 	if err := pluginManager.Start(); err != nil {
+		log.Fatal(err)
+	}
+	if err := pluginManager.RegisterPluginToKubelet(); err != nil {
 		log.Fatal(err)
 	}
 }
