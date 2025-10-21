@@ -8,7 +8,7 @@ BIN=k8s-hostdev-plugin
 all: bin 
 
 
-${BIN}: main.go server.go
+${BIN}: main.go server.go watcher.go
 	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' ${GCFLAGS} -o $@ 
 
 bin: ${BIN}
