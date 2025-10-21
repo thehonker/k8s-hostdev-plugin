@@ -15,7 +15,7 @@ RUN cd /k8s-hostdev-plugin \
   && GOARM=$(echo ${TARGETPLATFORM} | cut -d / -f3); export GOARM=${GOARM:1} \
   && rm k8s-hostdev-plugin || true \
   && go mod download \
-  && go build -o k8s-hostdev-plugin -a -ldflags '-extldflags "-static"' main.go server.go watcher.go \
+  && go build -o k8s-hostdev-plugin -a -ldflags '-extldflags "-static"' main.go server.go \
   && chmod +x k8s-hostdev-plugin
 
 FROM scratch
